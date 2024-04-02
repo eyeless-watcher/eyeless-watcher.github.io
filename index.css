@@ -1,0 +1,57 @@
+body {
+    margin: 0;
+    height: 100vh;
+    min-width: 600px;
+    min-height: 800px;
+}
+
+#menu {
+    display: flex;
+    height: 5%;
+}
+
+#menu > * {
+    flex-grow: 1;
+}
+
+#input {
+    display: flex;
+    height: 75%;
+}
+
+#input div {
+    height: 100%;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#input label {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px black solid;
+}
+
+input[type="radio"]{
+    display: none;
+}
+
+input[type="radio"]:disabled+label {
+    background-color: lightgrey;
+}
+
+input[type="radio"]:checked+label {
+    background-color: lightgreen;
+}
+
+#stats {
+    width: 100%;
+    height: 20%;
+}
+
+#stats td {
+    text-align: center;
+    vertical-align: middle;
+}
