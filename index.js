@@ -12,21 +12,32 @@ $(function(){
         "Саня",
     ];
 
-    var allActions = [
-        "Подача",
-        "Приём",
-        "Пас",
-        "Атака",
-        "Блок",
-        "Защита",
-    ];
-
-    var allQuality = [
-        "Очко проиграно",
-        "Пришлось спасать",
-        "С пивом потянет",
-        "Идеально",
-    ];
+    var allActions = {
+        "receive": {
+            "title" : "Приём",
+            "quality" : ["#", "+", "!", "-", "="]
+        },
+        "serve": {
+            "title" : "Подача",
+            "quality" : ["ace", "+", "!", "-"]
+        },
+        "attack": {
+            "title" : "Атака",
+            "quality" : ["+", "!", "-"]
+        },
+        "defence": {
+            "title" : "Защита",
+            "quality" : ["+", "!", "-"]
+        },
+        "set": {
+            "title" : "Пас",
+            "quality" : ["П+", "П-", "З+", "З-"]
+        },
+        "block" : {
+            "title" : "Блок",
+            "quality" : ["+", "!"]
+        }
+    };
 
     var $players = $("#players");
     var $actions = $("#actions");
@@ -43,62 +54,59 @@ $(function(){
         $players.append($("<label>").attr("for", value).text(value));
     });
 
-    $.each(allActions, function(index, value){
+    $.each(allActions, function(id, value){
         $actions.append(
              $("<input>")
                 .attr("type", "radio")
                 .attr("name", "action")
-                .attr("id", value)
-                .attr("value", value)
-                .attr("disabled", true)
-        );
-        $actions.append($("<label>").attr("for", value).text(value));
-    });
-
-    $.each(allQuality, function(index, value){
-        var id =  "quality" + index;
-        $quality.append(
-            $("<input>")
-                .attr("type", "radio")
-                .attr("name", "quality")
                 .attr("id", id)
-                .attr("value", index)
+                .attr("value", value.title)
                 .attr("disabled", true)
         );
-        $quality.append($("<label>").attr("for", id).text(value + " (" + index + ")"));
+        $actions.append($("<label>").attr("for", id).text(value.title));
     });
 
-    var $playersInput = $players.find("input");
-    var $actionsInput = $actions.find("input");
-    var $qualityInput = $quality.find("input");
-
-    $playersInput.change(function() {
-        $actionsInput.prop("checked", false).attr("disabled", false);
-        $qualityInput.prop("checked", false).attr("disabled", true);
+    $players.on("change", "input", function(){
+        $actions.find("input").attr("disabled", false);
+        $actions.find(":checked").prop("checked", false);
+        $quality.empty();
     });
 
-    $actionsInput.change(function(){
-        $qualityInput.prop("checked", false).attr("disabled", false);
+    $actions.on("change", "input", function(){
+        var action = allActions[$actions.find(":checked").attr("id")];
+        $quality.empty();
+        $.each(action.quality, function(index, value){
+            var id =  "quality" + index;
+            $quality.append(
+                $("<input>")
+                    .attr("type", "radio")
+                    .attr("name", "quality")
+                    .attr("id", id)
+                    .attr("value", value)
+            );
+            $quality.append($("<label>").attr("for", id).text(value));
+        });
     });
 
-    $qualityInput.change(function(){
-        var player = $playersInput.filter(":checked").val();
-        var action = $actionsInput.filter(":checked").val();
-        var quality = $qualityInput.filter(":checked").val();
+    $quality.on("change", "input", function(){
+        var player = $players.find(":checked").val();
+        var action = $actions.find(":checked").attr("id");
+        var quality = $quality.find(":checked").val();
 
         var currentStats = readStats();
         currentStats.push({
             "player" : player,
             "action" : action,
-            "quality" : parseInt(quality, 10)
+            "quality" : quality
         });
         localStorage.setItem("stats", JSON.stringify(currentStats));
 
         reloadStats();
 
-        $playersInput.prop("checked", false);
-        $actionsInput.prop("checked", false).attr("disabled", true);
-        $qualityInput.prop("checked", false).attr("disabled", true);
+        $players.find(":checked").prop("checked", false);
+        $actions.find("input").attr("disabled", true);
+        $actions.find(":checked").prop("checked", false);
+        $quality.empty();
     });
 
     $("#clear").click(function(){
@@ -118,8 +126,8 @@ $(function(){
         var table = {};
         $.each(allPlayers, function(index, player){
             table[player] = {};
-            $.each(allActions, function(index, action){
-                table[player][action] = [];
+            $.each(allActions, function(id, action){
+                table[player][id] = [];
             });
         });
         var stats = readStats();
@@ -133,19 +141,26 @@ $(function(){
             $firstRow.append($("<td>").text(player));
         });
         $stats.append($firstRow);
-        $.each(allActions, function(index, action){
+        $.each(allActions, function(id, action){
             var $row = $("<tr>");
-            $row.append($("<td>").text(action));
+            $row.append($("<td>").text(action.title));
             $.each(allPlayers, function(index, player){
-                var units = table[player][action];
-                var sum = 0;
+                var units = table[player][id];
                 var total = units.length;
-                for(var i = 0; i < total; i++ ){
-                    sum += units[i];
+                var text = "";
+                if(total > 0){
+                    $.each(action.quality, function(index, quality){
+                        var qualityUnits = $.grep(units, function(unit){
+                            return unit === quality;
+                        });
+                        if(qualityUnits.length > 0){
+                            var percentage = (100 * parseFloat(qualityUnits.length) / total).toFixed(0);
+                            text += "<div>" + quality + ": " + percentage + "%</div>";
+                        }
+                    });
+                    text += "<div>всего: "+ total +"</div>";
                 }
-                var avg = sum/total;
-                var text = total == 0 ? "" : avg.toFixed(2) + " ("+ total +")";
-                $row.append($("<td>").text(text));
+                $row.append($("<td>").html(text));
             });
             $stats.append($row);
         });
